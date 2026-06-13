@@ -15,11 +15,14 @@ source.dir = .
 # (list) Source files to include (crucial for loading your web stack)
 source.include_exts = py,png,jpg,kv,atlas,html,css,js
 
-# (list) Source directories to include 
+# (list) Source directories to include
 source.include_dirs = www
 
-# (str) Application versioning
+# (str) Application versioning (String representation)
 version = 1.0.0
+
+# (int) Android version code (Increments with every Play Store update)
+android.numeric_version = 1
 
 # (list) Application requirements
 # WebView implementation relies on Kivy and android extensions
@@ -38,7 +41,7 @@ fullscreen = 1
 # (list) Permissions requested by app (Internet needed for internal webview hosting)
 android.permissions = INTERNET
 
-# (int) Target Android API
+# (int) Target Android API (Matches Google Play requirements)
 android.api = 33
 
 # (int) Minimum API required
@@ -56,3 +59,11 @@ android.archs = arm64-v8a, armeabi-v7a
 # (str) Default build target format (The YAML pipeline will auto-toggle this anyway)
 android.target = aab
 
+
+[buildozer]
+
+# (int) Log level (0 = error only, 1 = info, 2 = debug (with command output))
+log_level = 2
+
+# (int) Display warning if buildozer is run as root (0 = False, 1 = True)
+warn_on_root = 1
