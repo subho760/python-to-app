@@ -24,8 +24,10 @@ version = 1.0.0
 # (int) Android version code (Increments with every Play Store update)
 android.numeric_version = 1
 
+# (str) Icon of the application (Must be a PNG file in your root folder)
+icon.filename = icon.png
+
 # (list) Application requirements
-# WebView implementation relies on Kivy and android extensions
 requirements = python3,kivy,android
 
 # (list) Supported orientations
