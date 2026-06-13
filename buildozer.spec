@@ -43,16 +43,16 @@ fullscreen = 1
 # (list) Permissions requested by app (Internet needed for internal webview hosting)
 android.permissions = INTERNET
 
-# (int) Target Android API (Matches Google Play requirements)
+# (int) Target Android API
 android.api = 33
 
 # (int) Minimum API required
 android.minapi = 21
 
-# (str) Android NDK version to use
-android.ndk = 25b
+# (str) Android NDK version to use (Leave blank so the Action matches it flawlessly)
+android.ndk = 
 
-# (bool) Enable AndroidX architecture (Required for modern Android WebView execution)
+# (bool) Enable AndroidX architecture
 android.enable_androidx = True
 
 # (list) Architectures to build for (Covers 99% of modern devices)
