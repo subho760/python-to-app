@@ -28,6 +28,7 @@ android.numeric_version = 1
 icon.filename = icon.png
 
 # (list) Application requirements
+# WebView implementation relies on Kivy and android extensions
 requirements = python3,kivy,android
 
 # (list) Supported orientations
@@ -43,16 +44,25 @@ fullscreen = 1
 # (list) Permissions requested by app (Internet needed for internal webview hosting)
 android.permissions = INTERNET
 
-# (int) Target Android API
+# (int) Target Android API (Matches Google Play requirements)
 android.api = 33
 
 # (int) Minimum API required
 android.minapi = 21
 
-# (str) Android NDK version to use (Leave blank so the Action matches it flawlessly)
-android.ndk = 
+# (str) Android NDK version to use
+android.ndk = 25b
 
-# (bool) Enable AndroidX architecture
+# (str) Android NDK directory (leave empty to let buildozer download it)
+android.ndk_path =
+
+# (str) Android SDK directory (leave empty to let buildozer download it)
+android.sdk_path =
+
+# (bool) Auto-accept SDK license agreement (CRUCIAL: Prevents the GitHub Action from hanging/crashing)
+android.accept_sdk_license = True
+
+# (bool) Enable AndroidX architecture (Required for modern Android WebView execution)
 android.enable_androidx = True
 
 # (list) Architectures to build for (Covers 99% of modern devices)
