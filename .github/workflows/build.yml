@@ -1,7 +1,7 @@
 name: Build Android AAB and APK
 
 on:
-  workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
+  workflow_dispatch: # Manual trigger from Actions tab
 
 jobs:
   build:
@@ -11,27 +11,6 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-
-    - name: Install System Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libsqlite3-dev lld ncurses-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev wget curl make build-essential openjdk-17-jdk unzip
-        pip install --upgrade pip
-        pip install buildozer cython==0.29.36 virtualenv
-
-    - name: Automatically Accept Android SDK Licenses
-      run: |
-        mkdir -p ~/.android
-        touch ~/.android/repositories.cfg
-        # Pre-populate license acceptances for Android SDK tools
-        mkdir -p $HOME/.buildozer/android/platform/android-sdk/licenses
-        echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb74bf6229503086d06e\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
-        echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
-
     - name: Decode JKS Keystore
       env:
         KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
@@ -39,28 +18,33 @@ jobs:
         echo "$KEYSTORE_BASE64" | base64 --decode > release.keystore
 
     - name: Build Signed AAB (Google Play Bundle)
+      uses: ArtemGovorov/buildozer-action@v1
+      id: build-aab
+      with:
+        command: buildozer android release
+        buildozer_version: master
       env:
         APP_ANDROID_ARCHS: arm64-v8a,armeabi-v7a
         P4A_RELEASE_KEYSTORE: release.keystore
         P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.KEYSTORE_PASSWORD }}
         P4A_RELEASE_KEYALIAS: ${{ secrets.KEY_ALIAS }}
         P4A_RELEASE_KEYALIAS_PASSWD: ${{ secrets.KEY_PASSWORD }}
-      run: |
-        sed -i 's/^android.target =.*/android.target = aab/' buildozer.spec
-        # Use "yes" utility pipe to bypass any remaining license prompts
-        yes | buildozer android release
-        
+
     - name: Build Signed APK (Phone Testing)
+      uses: ArtemGovorov/buildozer-action@v1
+      id: build-apk
+      with:
+        command: |
+          sed -i 's/^android.target =.*/android.target = apk/' buildozer.spec
+          buildozer android clean
+          buildozer android release
+        buildozer_version: master
       env:
         APP_ANDROID_ARCHS: arm64-v8a,armeabi-v7a
         P4A_RELEASE_KEYSTORE: release.keystore
         P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.KEYSTORE_PASSWORD }}
         P4A_RELEASE_KEYALIAS: ${{ secrets.KEY_ALIAS }}
         P4A_RELEASE_KEYALIAS_PASSWD: ${{ secrets.KEY_PASSWORD }}
-      run: |
-        sed -i 's/^android.target =.*/android.target = apk/' buildozer.spec
-        buildozer android clean
-        yes | buildozer android release
 
     - name: Upload Signed Packages Artifact
       uses: actions/upload-artifact@v4
