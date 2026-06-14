@@ -38,6 +38,9 @@ orientation = portrait
 # Android specific configuration
 # ----------------------------------
 
+# (str) XML Application attributes
+android.manifest.application_attributes = android:usesCleartextTraffic="true"
+
 # (bool) Indicate if the application should be fullscreen
 fullscreen = 1
 
