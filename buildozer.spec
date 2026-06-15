@@ -29,7 +29,7 @@ icon.filename = icon.png
 
 # (list) Application requirements
 # WebView implementation relies on Kivy and android extensions
-requirements = python3,kivy,android
+requirements = python3,kivy,android,pyjnius
 
 # (list) Supported orientations
 orientation = portrait
