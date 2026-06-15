@@ -19,9 +19,42 @@ jobs:
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libsqlite3-dev lld ncurses-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev wget curl make build-essential openjdk-17-jdk unzip autoconf libtool
-        pip install --upgrade pip
-        pip install buildozer cython==0.29.36 virtualenv
+        sudo apt-get install -y \
+          build-essential \
+          git \
+          ffmpeg \
+          libsdl2-dev \
+          libsdl2-image-dev \
+          libsdl2-mixer-dev \
+          libsdl2-ttf-dev \
+          libportmidi-dev \
+          libswscale-dev \
+          libavformat-dev \
+          libavcodec-dev \
+          zlib1g-dev \
+          libgstreamer1.0 \
+          gstreamer1.0-plugins-base \
+          gstreamer1.0-plugins-good \
+          libtool \
+          autoconf \
+          automake \
+          pkg-config \
+          libssl-dev \
+          libffi-dev \
+          libncurses5-dev \
+          libncursesw5-dev \
+          libbz2-dev \
+          libsqlite3-dev \
+          libreadline-dev \
+          libgdbm-dev \
+          libdb-dev \
+          libexpat1-dev \
+          libpcap-dev \
+          liblzma-dev \
+          tk-dev \
+          unzip \
+          zip \
+          openjdk-17-jdk
 
     - name: Decode JKS Keystore
       env:
