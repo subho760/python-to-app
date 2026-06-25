@@ -49,12 +49,10 @@ jobs:
         pip install cython==0.29.33 virtualenv buildozer
 
     - name: Decode JKS Keystore
-      env:
-        KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
       run: |
-        echo "$KEYSTORE_BASE64" | base64 --decode > release.keystore
+        echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > release.keystore
 
-    - name: Build Signed AAB (Google Play Bundle)
+    - name: Build and Sign AAB (Google Play Bundle)
       env:
         APP_ANDROID_ARCHS: arm64-v8a,armeabi-v7a
         P4A_RELEASE_KEYSTORE: release.keystore
@@ -65,7 +63,7 @@ jobs:
         sed -i 's/^android.target =.*/android.target = aab/' buildozer.spec
         buildozer android release
 
-    - name: Build Signed APK (Phone Testing)
+    - name: Build and Sign APK (Phone Testing)
       env:
         APP_ANDROID_ARCHS: arm64-v8a,armeabi-v7a
         P4A_RELEASE_KEYSTORE: release.keystore
