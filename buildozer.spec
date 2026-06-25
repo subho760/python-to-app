@@ -18,7 +18,7 @@ source.include_exts = py,png,jpg,kv,atlas,html,css,js
 # (list) Source directories to include
 source.include_dirs = www
 
-# (str) Application versioning (String representation)
+# (str) Application version (String representation)
 version = 1.0.0
 
 # (int) Android version code (Increments with every Play Store update)
@@ -34,9 +34,9 @@ requirements = python3,kivy,android,pyjnius
 # (list) Supported orientations
 orientation = portrait
 
-# ----------------------------------
+# ---------------------------------------------------------------------------
 # Android specific configuration
-# ----------------------------------
+# ---------------------------------------------------------------------------
 
 # (str) XML Application attributes
 android.manifest.application_attributes = android:usesCleartextTraffic="true"
@@ -57,10 +57,10 @@ android.minapi = 21
 android.ndk = 25b
 
 # (str) Android NDK directory (leave empty to let buildozer download it)
-android.ndk_path =
+android.ndk_path = 
 
 # (str) Android SDK directory (leave empty to let buildozer download it)
-android.sdk_path =
+android.sdk_path = 
 
 # (bool) Auto-accept SDK license agreement (CRUCIAL: Prevents the GitHub Action from hanging/crashing)
 android.accept_sdk_license = True
@@ -73,7 +73,6 @@ android.archs = arm64-v8a, armeabi-v7a
 
 # (str) Default build target format (The YAML pipeline will auto-toggle this anyway)
 android.target = aab
-
 
 [buildozer]
 
