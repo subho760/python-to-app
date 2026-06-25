@@ -1,6 +1,8 @@
 name: Build Android AAB and APK
 
 on:
+  push:
+    branches: [ "main" ]
   workflow_dispatch: # Allows manual trigger from the Actions tab
 
 jobs:
@@ -17,7 +19,7 @@ jobs:
         python-version: '3.11'
 
     - name: Install System Dependencies
-      run:|
+      run: |
         sudo apt-get update
         sudo apt-get install -y --no-install-recommends \
           build-essential \
@@ -46,7 +48,7 @@ jobs:
     - name: Decode JKS Keystore
       env:
         KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
-      run:|
+      run: |
         echo "$KEYSTORE_BASE64" | base64 --decode > release.keystore
 
     - name: Build Signed AAB (Google Play Bundle)
@@ -56,7 +58,7 @@ jobs:
         P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.KEYSTORE_PASSWORD }}
         P4A_RELEASE_KEYALIAS: ${{ secrets.KEY_ALIAS }}
         P4A_RELEASE_KEYALIAS_PASSWD: ${{ secrets.KEY_PASSWORD }}
-      run:|
+      run: |
         sed -i 's/^android.target =.*/android.target = aab/' buildozer.spec
         buildozer android release
 
@@ -67,7 +69,7 @@ jobs:
         P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.KEYSTORE_PASSWORD }}
         P4A_RELEASE_KEYALIAS: ${{ secrets.KEY_ALIAS }}
         P4A_RELEASE_KEYALIAS_PASSWD: ${{ secrets.KEY_PASSWORD }}
-      run:|
+      run: |
         sed -i 's/^android.target =.*/android.target = apk/' buildozer.spec
         buildozer android release
 
@@ -76,4 +78,3 @@ jobs:
       with:
         name: Signed-Dragon-Builds
         path: bin/
-        
