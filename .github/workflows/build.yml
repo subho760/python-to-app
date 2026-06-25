@@ -58,7 +58,7 @@ jobs:
         P4A_RELEASE_KEYSTORE: release.keystore
         P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.KEYSTORE_PASSWORD }}
         P4A_RELEASE_KEYALIAS: ${{ secrets.KEY_ALIAS }}
-        P4A_RELEASE_KEYALIAS_PASSWD: ${{ secrets.KEY_PASSWORD }}
+        P4A_RELEASE_KEY_PASSWD: ${{ secrets.KEY_PASSWORD }}
       run: |
         sed -i 's/^android.target =.*/android.target = aab/' buildozer.spec
         buildozer android release
@@ -69,7 +69,7 @@ jobs:
         P4A_RELEASE_KEYSTORE: release.keystore
         P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.KEYSTORE_PASSWORD }}
         P4A_RELEASE_KEYALIAS: ${{ secrets.KEY_ALIAS }}
-        P4A_RELEASE_KEYALIAS_PASSWD: ${{ secrets.KEY_PASSWORD }}
+        P4A_RELEASE_KEY_PASSWD: ${{ secrets.KEY_PASSWORD }}
       run: |
         sed -i 's/^android.target =.*/android.target = apk/' buildozer.spec
         buildozer android release
