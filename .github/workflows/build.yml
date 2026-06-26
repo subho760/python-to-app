@@ -1,7 +1,9 @@
 name: Build Custom Wrapper (APK & AAB)
 
 on:
-  workflow_dispatch: # Manual trigger from the Actions tab
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: # Forces the manual run button to show up
 
 jobs:
   build:
@@ -40,13 +42,11 @@ jobs:
       run: |
         echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > release.keystore
 
-    - name: Build and Sign AAB (Google Play Bundle)
+    - name: Build AAB Target
       run: |
-        # Force spec target to AAB
         sed -i 's/^android.target =.*/android.target = aab/' buildozer.spec
         buildozer -v android release || true
         
-        # Manually extract and sign the AAB to bypass tracking bugs
         mkdir -p bin/
         RAW_AAB=$(find . -name "*.aab" | head -n 1)
         if [ ! -z "$RAW_AAB" ]; then
@@ -57,21 +57,18 @@ jobs:
             -keypass "${{ secrets.KEY_PASSWORD }}" \
             bin/dragonhole-release.aab subho-alias
         else
-          echo "AAB file not generated!" && exit 1
+          echo "AAB target package not generated!" && exit 1
         fi
 
-    - name: Clean Runner Cache for APK Target
+    - name: Reset Build Environment for APK
       run: |
-        # Clear specific temporary android builds to force clean binary compilation
         rm -rf .buildozer/android/platform/build-*
 
-    - name: Build and Sign APK (Mobile Testing)
+    - name: Build APK Target
       run: |
-        # Force spec target to APK
         sed -i 's/^android.target =.*/android.target = apk/' buildozer.spec
         buildozer -v android release || true
         
-        # Manually extract and sign the APK
         RAW_APK=$(find . -name "*.apk" | head -n 1)
         if [ ! -z "$RAW_APK" ]; then
           cp "$RAW_APK" bin/dragonhole-release.apk
@@ -81,10 +78,10 @@ jobs:
             -keypass "${{ secrets.KEY_PASSWORD }}" \
             bin/dragonhole-release.apk subho-alias
         else
-          echo "APK file not generated!" && exit 1
+          echo "APK target package not generated!" && exit 1
         fi
 
-    - name: Upload Both Signed Packages
+    - name: Upload Signed Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: Signed-Android-Packages
