@@ -1,8 +1,6 @@
-name: Build Android AAB and APK
+name: Production Build (Android Release)
 
 on:
-  push:
-    branches: [ "main" ]
   workflow_dispatch: # Allows manual trigger from the Actions tab
 
 jobs:
@@ -10,7 +8,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - name: Checkout Code
+    - name: Checkout Repository
       uses: actions/checkout@v4
 
     - name: Set up Python
@@ -18,63 +16,44 @@ jobs:
       with:
         python-version: '3.11'
 
+    - name: Set up JDK 11
+      uses: actions/setup-java@v4
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+
     - name: Install System Dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y --no-install-recommends \
-          build-essential \
-          git \
-          zip \
-          unzip \
-          gettext \
-          libncurses5 \
-          libncursesw5 \
-          zlib1g-dev \
-          libssl-dev \
-          libffi-dev \
-          libltdl-dev \
-          libtool \
-          autoconf \
-          automake \
-          pkg-config \
-          cmake \
-          openjdk-11-jdk \
-          libtinfo5 \
-          libunwind-dev \
-          libgstreamer1.0-dev \
-          gstreamer1.0-plugins-base \
-          gstreamer1.0-plugins-good
+          build-essential git zip unzip gettext libncurses5-dev \
+          libncursesw5-dev zlib1g-dev libssl-dev libffi-dev libltdl-dev libtool \
+          autoconf automake pkg-config cmake openjdk-11-jdk libunwind-dev \
+          libgstreamer1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good
 
+    - name: Install Buildozer and Cython
+      run: |
         pip install --upgrade pip
-        pip install cython==0.29.33 virtualenv buildozer
+        pip install 'cython==0.29.33' virtualenv buildozer
 
-    - name: Decode JKS Keystore
+    - name: Decode Keystore
       run: |
         echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > release.keystore
 
-    - name: Build and Sign Production AAB
+    - name: Build Android Release (AAB)
       env:
         APP_ANDROID_ARCHS: arm64-v8a,armeabi-v7a
         P4A_RELEASE_KEYSTORE: release.keystore
         P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.KEYSTORE_PASSWORD }}
-        P4A_RELEASE_KEYALIAS: ${{ secrets.KEY_ALIAS }}
+        P4A_RELEASE_KEYALIAS: subho-alias
         P4A_RELEASE_KEY_PASSWD: ${{ secrets.KEY_PASSWORD }}
       run: |
-        # Set target format to Google Play Bundle (AAB)
+        # Ensure target is set to AAB
         sed -i 's/^android.target =.*/android.target = aab/' buildozer.spec
-        buildozer android release
+        buildozer -v android release
 
-    - name: Build and Sign Debug/Testing APK
-      env:
-        APP_ANDROID_ARCHS: arm64-v8a,armeabi-v7a
-      run: |
-        # Build a clean debug APK for regular mobile installation testing
-        # Debug packages bypass custom keystores to avoid matching target errors
-        sed -i 's/^android.target =.*/android.target = apk/' buildozer.spec
-        buildozer android debug
-
-    - name: Upload Signed Packages Artifact
+    - name: Upload Signed Build Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: Signed-Dragon-Builds
+        name: android-release-package
         path: bin/
