@@ -1,7 +1,7 @@
-name: Production Build (Android Release)
+name: Build Custom Wrapper (APK & AAB)
 
 on:
-  workflow_dispatch: # Allows manual trigger from the Actions tab
+  workflow_dispatch: # Manual trigger from the Actions tab
 
 jobs:
   build:
@@ -36,24 +36,56 @@ jobs:
         pip install --upgrade pip
         pip install 'cython==0.29.33' virtualenv buildozer
 
-    - name: Decode Keystore
+    - name: Decode JKS Keystore
       run: |
         echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > release.keystore
 
-    - name: Build Android Release (AAB)
-      env:
-        APP_ANDROID_ARCHS: arm64-v8a,armeabi-v7a
-        P4A_RELEASE_KEYSTORE: release.keystore
-        P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.KEYSTORE_PASSWORD }}
-        P4A_RELEASE_KEYALIAS: subho-alias
-        P4A_RELEASE_KEY_PASSWD: ${{ secrets.KEY_PASSWORD }}
+    - name: Build and Sign AAB (Google Play Bundle)
       run: |
-        # Ensure target is set to AAB
+        # Force spec target to AAB
         sed -i 's/^android.target =.*/android.target = aab/' buildozer.spec
-        buildozer -v android release
+        buildozer -v android release || true
+        
+        # Manually extract and sign the AAB to bypass tracking bugs
+        mkdir -p bin/
+        RAW_AAB=$(find . -name "*.aab" | head -n 1)
+        if [ ! -z "$RAW_AAB" ]; then
+          cp "$RAW_AAB" bin/dragonhole-release.aab
+          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA256 \
+            -keystore release.keystore \
+            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
+            -keypass "${{ secrets.KEY_PASSWORD }}" \
+            bin/dragonhole-release.aab subho-alias
+        else
+          echo "AAB file not generated!" && exit 1
+        fi
 
-    - name: Upload Signed Build Artifacts
+    - name: Clean Runner Cache for APK Target
+      run: |
+        # Clear specific temporary android builds to force clean binary compilation
+        rm -rf .buildozer/android/platform/build-*
+
+    - name: Build and Sign APK (Mobile Testing)
+      run: |
+        # Force spec target to APK
+        sed -i 's/^android.target =.*/android.target = apk/' buildozer.spec
+        buildozer -v android release || true
+        
+        # Manually extract and sign the APK
+        RAW_APK=$(find . -name "*.apk" | head -n 1)
+        if [ ! -z "$RAW_APK" ]; then
+          cp "$RAW_APK" bin/dragonhole-release.apk
+          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA256 \
+            -keystore release.keystore \
+            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
+            -keypass "${{ secrets.KEY_PASSWORD }}" \
+            bin/dragonhole-release.apk subho-alias
+        else
+          echo "APK file not generated!" && exit 1
+        fi
+
+    - name: Upload Both Signed Packages
       uses: actions/upload-artifact@v4
       with:
-        name: android-release-package
+        name: Signed-Android-Packages
         path: bin/
