@@ -1,88 +1,75 @@
-name: Build Custom Wrapper (APK & AAB)
+name: Production Multi-Build Release
+
 
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch: # Forces the manual run button to show up
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-22.04
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
+      - name: Setup Java JDK 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
 
-    - name: Set up JDK 11
-      uses: actions/setup-java@v4
-      with:
-        java-version: '11'
-        distribution: 'temurin'
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential git python3 python3-dev zip libltdl-dev libffi-dev libssl-dev autoconf automake libtool pkg-config cmake
+          pip3 install --upgrade pip
+          pip3 install buildozer cython==0.29.33
 
-    - name: Install System Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends \
-          build-essential git zip unzip gettext libncurses5-dev \
-          libncursesw5-dev zlib1g-dev libssl-dev libffi-dev libltdl-dev libtool \
-          autoconf automake pkg-config cmake openjdk-11-jdk libunwind-dev \
-          libgstreamer1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good
+      - name: Prepare Keystore
+        run: |
+          echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > release.keystore
+          mkdir -p staging
 
-    - name: Install Buildozer and Cython
-      run: |
-        pip install --upgrade pip
-        pip install 'cython==0.29.33' virtualenv buildozer
+      - name: Build Release APK
+        run: |
+          # Build specifically for APK first
+          sed -i 's/android.release_artifact = aab/android.release_artifact = apk/' buildozer.spec
+          buildozer android release
+          mv bin/*.apk staging/unsigned.apk
 
-    - name: Decode JKS Keystore
-      run: |
-        echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > release.keystore
+      - name: Build Release AAB
+        run: |
+          # Swap target to AAB
+          sed -i 's/android.release_artifact = apk/android.release_artifact = aab/' buildozer.spec
+          buildozer android release
+          mv bin/*.aab staging/unsigned.aab
 
-    - name: Build AAB Target
-      run: |
-        sed -i 's/^android.target =.*/android.target = aab/' buildozer.spec
-        buildozer -v android release || true
-        
-        mkdir -p bin/
-        RAW_AAB=$(find . -name "*.aab" | head -n 1)
-        if [ ! -z "$RAW_AAB" ]; then
-          cp "$RAW_AAB" bin/dragonhole-release.aab
+      - name: Final Manual Signing Step
+        run: |
+          # Sign the APK
           jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA256 \
             -keystore release.keystore \
             -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
             -keypass "${{ secrets.KEY_PASSWORD }}" \
-            bin/dragonhole-release.aab subho-alias
-        else
-          echo "AAB target package not generated!" && exit 1
-        fi
+            staging/unsigned.apk subho-alias
 
-    - name: Reset Build Environment for APK
-      run: |
-        rm -rf .buildozer/android/platform/build-*
-
-    - name: Build APK Target
-      run: |
-        sed -i 's/^android.target =.*/android.target = apk/' buildozer.spec
-        buildozer -v android release || true
-        
-        RAW_APK=$(find . -name "*.apk" | head -n 1)
-        if [ ! -z "$RAW_APK" ]; then
-          cp "$RAW_APK" bin/dragonhole-release.apk
+          # Sign the AAB
           jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA256 \
             -keystore release.keystore \
             -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
             -keypass "${{ secrets.KEY_PASSWORD }}" \
-            bin/dragonhole-release.apk subho-alias
-        else
-          echo "APK target package not generated!" && exit 1
-        fi
+            staging/unsigned.aab subho-alias
 
-    - name: Upload Signed Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: Signed-Android-Packages
-        path: bin/
+          # Final Rename
+          mv staging/unsigned.apk bin/Release_API33.apk
+          mv staging/unsigned.aab bin/Release_API33.aab
+
+      - name: Upload Finished Assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android-Release-Binaries
+          path: |
+            bin/Release_API33.apk
+            bin/Release_API33.aab
