@@ -10,17 +10,13 @@ body {
     height: 100vh;
     transition: background-color 0.4s ease;
 }
-
 .container {
     text-align: center;
-    padding: 20px;
 }
-
 .status {
     color: #00ff88;
     font-weight: bold;
 }
-
 button {
     margin-top: 20px;
     padding: 15px 30px;
@@ -32,8 +28,4 @@ button {
     border-radius: 25px;
     cursor: pointer;
     box-shadow: 0 4px 15px rgba(0, 255, 136, 0.4);
-}
-
-button:active {
-    transform: scale(0.98);
 }
