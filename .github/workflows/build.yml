@@ -52,7 +52,7 @@ jobs:
       run: |
         echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > release.keystore
 
-    - name: Build and Sign AAB (Google Play Bundle)
+    - name: Build and Sign Production AAB
       env:
         APP_ANDROID_ARCHS: arm64-v8a,armeabi-v7a
         P4A_RELEASE_KEYSTORE: release.keystore
@@ -60,19 +60,18 @@ jobs:
         P4A_RELEASE_KEYALIAS: ${{ secrets.KEY_ALIAS }}
         P4A_RELEASE_KEY_PASSWD: ${{ secrets.KEY_PASSWORD }}
       run: |
+        # Set target format to Google Play Bundle (AAB)
         sed -i 's/^android.target =.*/android.target = aab/' buildozer.spec
         buildozer android release
 
-    - name: Build and Sign APK (Phone Testing)
+    - name: Build and Sign Debug/Testing APK
       env:
         APP_ANDROID_ARCHS: arm64-v8a,armeabi-v7a
-        P4A_RELEASE_KEYSTORE: release.keystore
-        P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.KEYSTORE_PASSWORD }}
-        P4A_RELEASE_KEYALIAS: ${{ secrets.KEY_ALIAS }}
-        P4A_RELEASE_KEY_PASSWD: ${{ secrets.KEY_PASSWORD }}
       run: |
+        # Build a clean debug APK for regular mobile installation testing
+        # Debug packages bypass custom keystores to avoid matching target errors
         sed -i 's/^android.target =.*/android.target = apk/' buildozer.spec
-        buildozer android release
+        buildozer android debug
 
     - name: Upload Signed Packages Artifact
       uses: actions/upload-artifact@v4
