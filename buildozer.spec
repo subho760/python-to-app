@@ -12,7 +12,6 @@ orientation = portrait
 fullscreen = 1
 icon.filename = icon.png
 
-# Android Environment Specifications
 android.api = 33
 android.minapi = 21
 android.ndk = 25b
