@@ -21,7 +21,6 @@ class WebViewContainer(BoxLayout):
         self.webview = WebView(activity)
         settings = self.webview.getSettings()
         
-        # Configure full local web execution environments
         settings.setJavaScriptEnabled(True)
         settings.setDomStorageEnabled(True)
         settings.setAllowFileAccess(True)
@@ -34,7 +33,6 @@ class WebViewContainer(BoxLayout):
         activity = PythonActivity.mActivity
         params = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
         
-        # Target local web directory entry point
         html_path = os.path.join(os.path.dirname(__file__), 'web', 'index.html')
         self.webview.loadUrl(f"file://{html_path}")
         activity.addContentView(self.webview, params)
