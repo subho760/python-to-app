@@ -1,76 +1,63 @@
 import os
-import threading
-import time
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from kivy.app import App
-from kivy.uix.widget import Widget
-from kivy.clock import Clock
-from jnius import autoclass
-from android.runnable import run_on_ui_thread
+from kivy.uix.boxlayout import BoxLayout
+from kivy.utils import platform
+from kivy.logger import Logger
 
-class ReusableHTTPServer(ThreadingHTTPServer):
-    allow_reuse_address = True
+# Import Android specific components only when running on target OS
+if platform == 'android':
+    from jnius import autoclass
+    PythonActivity = autoclass('org.kivy.android.PythonActivity')
+    WebView = autoclass('android.webkit.WebView')
+    WebViewClient = autoclass('android.webkit.WebViewClient')
+    LayoutParams = autoclass('android.view.ViewGroup$LayoutParams')
 
-def run_local_server(www_path):
-    # Subclass handler to serve from a specific directory without global os.chdir()
-    class FixedHandler(SimpleHTTPRequestHandler):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, directory=www_path, **kwargs)
-
-    server_address = ('127.0.0.1', 8080)
-    try:
-        with ReusableHTTPServer(server_address, FixedHandler) as httpd:
-            httpd.serve_forever()
-    except Exception as e:
-        print(f"Local server error: {e}")
-
-class NativeWebContainer(Widget):
+class WebAppContainer(BoxLayout):
     def __init__(self, **kwargs):
-        super(NativeWebContainer, self).__init__(**kwargs)
-        # Schedule webview creation on the next frame
-        Clock.schedule_once(self.create_native_webview, 0)
+        super(WebAppContainer, self).__init__(**kwargs)
+        if platform == 'android':
+            self.setup_android_webview()
+        else:
+            Logger.info("WebView: Standard Desktop Mode initialized.")
 
-    @run_on_ui_thread
-    def create_native_webview(self, *args):
-        # Resolve classes within the UI thread for stability
-        WebView = autoclass('android.webkit.WebView')
-        WebViewClient = autoclass('android.webkit.WebViewClient')
-        activity = autoclass('org.kivy.android.PythonActivity').mActivity
-
-        webview = WebView(activity)
-        settings = webview.getSettings()
+    def setup_android_webview(self):
+        # Fetch current system activity reference
+        activity = PythonActivity.mActivity
         
-        # Performance and compatibility settings
-        settings.setJavaScriptEnabled(True)
-        settings.setDomStorageEnabled(True)
-        settings.setUseWideViewPort(True)
-        settings.setLoadWithOverviewMode(True)
-        settings.setAllowFileAccess(True)
+        # Create WebView instance running contextually on the main thread
+        self.webview = WebView(activity)
+        self.settings = self.webview.getSettings()
         
-        # Set a standard client to handle navigation within the app
-        webview.setWebViewClient(WebViewClient())
-        activity.setContentView(webview)
+        # Enable full web functionality features
+        self.settings.setJavaScriptEnabled(True)
+        self.settings.setDomStorageEnabled(True)
+        self.settings.setAllowFileAccess(True)
+        self.settings.setAllowContentAccess(True)
+        self.settings.setDatabaseEnabled(True)
+        
+        # Ensure links open inside the app instead of an external browser
+        self.webview.setWebViewClient(WebViewClient())
+        
+        # Bind the WebView container size natively to fill parent layout
+        activity.runOnUiThread(self.create_webview_layout)
 
-        # Fix Race Condition: Wait briefly for the server thread to bind the port
-        def deferred_load(dt):
-            webview.loadUrl('http://127.0.0.1:8080/index.html')
-        Clock.schedule_once(deferred_load, 0.5)
+    def create_webview_layout(self):
+        activity = PythonActivity.mActivity
+        layout_params = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+        
+        # Resolve path target to the root index.html located in the packed www folder
+        base_path = os.path.join(os.path.dirname(__file__), 'www', 'index.html')
+        target_url = f"file://{base_path}"
+        
+        Logger.info(f"WebView: Attempting to render target -> {target_url}")
+        self.webview.loadUrl(target_url)
+        
+        # Add layout directly to activity view stack
+        activity.addContentView(self.webview, layout_params)
 
-class DragonApp(App):
+class DragonHoleApp(App):
     def build(self):
-        # Safely resolve absolute path to the 'www' directory
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        www_path = os.path.join(base_dir, 'www')
-        
-        # Start server with path argument instead of global chdir
-        server_thread = threading.Thread(
-            target=run_local_server, 
-            args=(www_path,), 
-            daemon=True
-        )
-        server_thread.start()
-        
-        return NativeWebContainer()
+        return WebAppContainer()
 
 if __name__ == '__main__':
-    DragonApp().run()
+    DragonHoleApp().run()
