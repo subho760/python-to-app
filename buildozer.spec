@@ -1,83 +1,33 @@
 [app]
-
-# (str) Title of your application
 title = Dragon Hole
-
-# (str) Package name
 package.name = dragonhole
-
-# (str) Package domain (needed for android packaging)
 package.domain = org.nightshadow
-
-# (str) Source code directory where main.py resides
 source.dir = .
 
-# (list) Source files to include (crucial for loading your web stack)
-source.include_exts = py,png,jpg,kv,atlas,html,css,js
+# Include all web assets and handle asset subdirectories cleanly
+source.include_exts = py, png, jpg, jpeg, kv, atlas, html, css, js
+source.include_patterns = www/*, assets/*, www/assets/*
 
-# (list) Source directories to include
-source.include_dirs = www
-
-# (str) Application version (String representation)
 version = 1.0.0
+requirements = python3, kivy, android, pyjnius
 
-# (int) Android version code (Increments with every Play Store update)
-android.numeric_version = 1
-
-# (str) Icon of the application (Must be a PNG file in your root folder)
+orientation = portrait
+fullscreen = 1
 icon.filename = icon.png
 
-# (list) Application requirements
-# WebView implementation relies on Kivy and android extensions
-requirements = python3,kivy,android,pyjnius
-
-# (list) Supported orientations
-orientation = portrait
-
-# ---------------------------------------------------------------------------
-# Android specific configuration
-# ---------------------------------------------------------------------------
-
-# (str) XML Application attributes
-android.manifest.application_attributes = android:usesCleartextTraffic="true"
-
-# (bool) Indicate if the application should be fullscreen
-fullscreen = 1
-
-# (list) Permissions requested by app (Internet needed for internal webview hosting)
-android.permissions = INTERNET
-
-# (int) Target Android API (Matches Google Play requirements)
+# Android Specific Target Configuration
 android.api = 33
-
-# (int) Minimum API required
 android.minapi = 21
-
-# (str) Android NDK version to use
 android.ndk = 25b
-
-# (str) Android NDK directory (leave empty to let buildozer download it)
-android.ndk_path = 
-
-# (str) Android SDK directory (leave empty to let buildozer download it)
-android.sdk_path = 
-
-# (bool) Auto-accept SDK license agreement (CRUCIAL: Prevents the GitHub Action from hanging/crashing)
 android.accept_sdk_license = True
-
-# (bool) Enable AndroidX architecture (Required for modern Android WebView execution)
 android.enable_androidx = True
-
-# (list) Architectures to build for (Covers 99% of modern devices)
 android.archs = arm64-v8a, armeabi-v7a
-
-# (str) Default build target format (The YAML pipeline will auto-toggle this anyway)
 android.target = aab
 
+# Cleartext permissions allow loading internal HTTP data if needed
+android.manifest.application_attributes = android:usesCleartextTraffic="true"
+android.permissions = INTERNET, ACCESS_NETWORK_STATE
+
 [buildozer]
-
-# (int) Log level (0 = error only, 1 = info, 2 = debug (with command output))
 log_level = 2
-
-# (int) Display warning if buildozer is run as root (0 = False, 1 = True)
 warn_on_root = 1
