@@ -1,30 +1,27 @@
 [app]
-title = WebWrapperPro
-package.name = webwrapperpro
-package.domain = org.subho.app
+title = Dragon Hole
+package.name = dragonhole
+package.domain = org.nightshadow
 source.dir = .
-source.include_exts = py,png,jpg,kv,atlas,html,css,js
+source.include_exts = py, png, jpg, jpeg, html, css, js
+source.include_patterns = web/*
+
 version = 1.0.0
-
-requirements = python3,kivy,pyjnius
-
+requirements = python3, kivy, android, pyjnius
 orientation = portrait
 fullscreen = 1
-android.archs = arm64-v8a
-android.allow_backup = True
+icon.filename = icon.png
 
-# Target Android 13 (API 33)
 android.api = 33
 android.minapi = 21
 android.ndk = 25b
 android.accept_sdk_license = True
+android.enable_androidx = True
+android.archs = arm64-v8a, armeabi-v7a
+android.target = aab
 
-# Native Permissions
+android.manifest.application_attributes = android:usesCleartextTraffic="true"
 android.permissions = INTERNET, ACCESS_NETWORK_STATE
-
-# Resource Configuration
-# We include 'web' in source.include_dirs to ensure it's packaged
-source.include_dirs = web
 
 [buildozer]
 log_level = 2
