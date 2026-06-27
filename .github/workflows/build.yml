@@ -1,7 +1,7 @@
-name: Pure Python Production Build
+name: Pure Python Debug Build
 
 on:
-  workflow_dispatch: # Kept manual to give you ultimate running control
+  workflow_dispatch: # Manual trigger from the Actions tab
 
 jobs:
   build:
@@ -35,36 +35,38 @@ jobs:
         pip install --upgrade pip
         pip install 'cython==0.29.33' virtualenv buildozer
 
-    - name: Deploy Local Keyring file
-      run: |
-        echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > release.keystore
-
-    - name: Compile and Sign Android App (AAB)
-      env:
-        P4A_RELEASE_KEYSTORE: release.keystore
-        P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.KEYSTORE_PASSWORD }}
-        P4A_RELEASE_KEYALIAS: subho-alias
-        P4A_RELEASE_KEY_PASSWD: ${{ secrets.KEY_PASSWORD }}
+    - name: Compile Android App Bundle (AAB)
       run: |
         sed -i 's/^android.target =.*/android.target = aab/' buildozer.spec
-        buildozer -v android release
+        # Using debug mode completely bypasses the internal signing bug
+        buildozer -v android debug
+
+    - name: Save AAB Output
+      run: |
+        mkdir -p final-bin/
+        FOUND_AAB=$(find . -name "*.aab" | head -n 1)
+        if [ -n "$FOUND_AAB" ]; then
+          cp "$FOUND_AAB" final-bin/dragonhole-debug.aab
+        fi
 
     - name: Clear Intermediate Build Cache
       run: |
         rm -rf .buildozer/android/platform/build-*
 
-    - name: Compile and Sign Android Installer (APK)
-      env:
-        P4A_RELEASE_KEYSTORE: release.keystore
-        P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.KEYSTORE_PASSWORD }}
-        P4A_RELEASE_KEYALIAS: subho-alias
-        P4A_RELEASE_KEY_PASSWD: ${{ secrets.KEY_PASSWORD }}
+    - name: Compile Android Installer (APK)
       run: |
         sed -i 's/^android.target =.*/android.target = apk/' buildozer.spec
-        buildozer -v android release
+        buildozer -v android debug
 
-    - name: Export Verified Packages
+    - name: Save APK Output
+      run: |
+        FOUND_APK=$(find . -name "*.apk" | head -n 1)
+        if [ -n "$FOUND_APK" ]; then
+          cp "$FOUND_APK" final-bin/dragonhole-debug.apk
+        fi
+
+    - name: Export Packages
       uses: actions/upload-artifact@v4
       with:
-        name: Signed-Android-Packages
-        path: bin/
+        name: Debug-Android-Packages
+        path: final-bin/
