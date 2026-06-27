@@ -1,45 +1,64 @@
-import os
+import random
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
-from kivy.utils import platform
+from kivy.uix.button import Button
+from kivy.uix.label import Label
+from kivy.graphics import Color, Rectangle
 
-if platform == 'android':
-    from jnius import autoclass
-    PythonActivity = autoclass('org.kivy.android.PythonActivity')
-    WebView = autoclass('android.webkit.WebView')
-    WebViewClient = autoclass('android.webkit.WebViewClient')
-    LayoutParams = autoclass('android.view.ViewGroup$LayoutParams')
-
-class WebViewContainer(BoxLayout):
+class DesignContainer(BoxLayout):
     def __init__(self, **kwargs):
-        super(WebViewContainer, self).__init__(**kwargs)
-        if platform == 'android':
-            self.setup_webview()
+        super(DesignContainer, self).__init__(**kwargs)
+        self.orientation = 'vertical'
+        self.padding = 50
+        self.spacing = 30
 
-    def setup_webview(self):
-        activity = PythonActivity.mActivity
-        self.webview = WebView(activity)
-        settings = self.webview.getSettings()
+        # Create basic Canvas background layer
+        with self.canvas.before:
+            self.bg_color = Color(0.07, 0.07, 0.07, 1) # Dark charcoal (#121212 alternative)
+            self.rect = Rectangle(size=self.size, pos=self.pos)
         
-        settings.setJavaScriptEnabled(True)
-        settings.setDomStorageEnabled(True)
-        settings.setAllowFileAccess(True)
-        settings.setAllowContentAccess(True)
-        
-        self.webview.setWebViewClient(WebViewClient())
-        activity.runOnUiThread(self.load_local_web)
+        self.bind(size=self._update_rect, pos=self._update_rect)
 
-    def load_local_web(self):
-        activity = PythonActivity.mActivity
-        params = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+        # Content Elements
+        self.add_widget(Label(
+            text="Dragon Hole", 
+            font_size='32sp', 
+            bold=True,
+            size_hint_y=0.2
+        ))
         
-        html_path = os.path.join(os.path.dirname(__file__), 'web', 'index.html')
-        self.webview.loadUrl(f"file://{html_path}")
-        activity.addContentView(self.webview, params)
+        self.add_widget(Label(
+            text="Testing Status: Functional", 
+            font_size='18sp',
+            color=(0, 1, 0.53, 1), # Green indicator text color
+            size_hint_y=0.2
+        ))
+
+        # Action Interactive Control
+        self.btn = Button(
+            text="Tap to Change Background",
+            font_size='18sp',
+            bold=True,
+            background_normal='',
+            background_color=(0, 1, 0.53, 1),
+            color=(0.07, 0.07, 0.07, 1),
+            size_hint_y=0.2,
+            border=(20, 20, 20, 20)
+        )
+        self.btn.bind(on_press=self.rotate_background_color)
+        self.add_widget(self.btn)
+
+    def _update_rect(self, instance, value):
+        self.rect.pos = instance.pos
+        self.rect.size = instance.size
+
+    def rotate_background_color(self, instance):
+        # Update Canvas RGB values safely on touch action events
+        self.bg_color.rgb = (random.random(), random.random(), random.random())
 
 class MainWrapperApp(App):
     def build(self):
-        return WebViewContainer()
+        return DesignContainer()
 
 if __name__ == '__main__':
     MainWrapperApp().run()
