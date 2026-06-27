@@ -1,7 +1,7 @@
 name: Build Android Signed APK
 
 on:
-  workflow_dispatch: # Manual trigger from the Actions tab
+  workflow_dispatch:
 
 jobs:
   build:
@@ -35,37 +35,46 @@ jobs:
         pip install --upgrade pip
         pip install 'cython==0.29.33' virtualenv buildozer
 
-    - name: Build with Buildozer
+    - name: Build Unsigned Release APK
       run: |
         export APP_ANDROID_ACCEPT_SDK_LICENSE="True"
-        buildozer -v android debug
+        # We target 'release' so Buildozer builds a clean, unsigned base app
+        buildozer -v android release
 
     - name: Decode JKS Keystore
       run: |
         echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > release.keystore
 
-    - name: Sign APK Binary with Keystore
+    - name: Align and Sign Production APK
       env:
         STORE_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
         KEY_PASS: ${{ secrets.KEY_PASSWORD }}
       run: |
         mkdir -p final-bin/
-        RAW_APK=$(find bin/ -name "*.apk" | head -n 1)
+        RAW_APK=$(find bin/ -name "*_release~*.apk" -o -name "*release-unsigned.apk" -o -name "*.apk" | head -n 1)
+        
         if [ -n "$RAW_APK" ]; then
-          cp "$RAW_APK" final-bin/dragonhole-signed.apk
-          # Using standard Java jarsigner to securely apply your credentials
-          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA256 \
-            -keystore release.keystore \
-            -storepass "$STORE_PASS" \
-            -keypass "$KEY_PASS" \
-            final-bin/dragonhole-signed.apk subho-alias
+          # Find Android Build Tools path dynamically for alignment
+          BUILD_TOOLS_DIR=$(dirname $(find /home/runner/Library/Android/sdk/build-tools/ -name "zipalign" | sort -V | tail -n 1))
+          
+          # 1. Zip Align the package first (Required for production apps)
+          $BUILD_TOOLS_DIR/zipalign -v 4 "$RAW_APK" final-bin/aligned.apk
+          
+          # 2. Use apksigner to seal the binary cleanly with your credentials
+          $BUILD_TOOLS_DIR/apksigner sign --ks release.keystore \
+            --ks-pass pass:"$STORE_PASS" \
+            --key-pass pass:"$KEY_PASS" \
+            --ks-key-alias subho-alias \
+            --out final-bin/dragonhole-final.apk final-bin/aligned.apk
+            
+          echo "Build signed successfully!"
         else
-          echo "ERROR: Compiled APK path not found!"
+          echo "ERROR: Compiled release target could not be found!"
           exit 1
         fi
 
-    - name: Upload Signed APK Artifact
+    - name: Upload Production APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: Signed-Android-Package
-        path: final-bin/
+        path: final-bin/dragonhole-final.apk
