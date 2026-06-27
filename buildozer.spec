@@ -1,28 +1,22 @@
 [app]
-title = KivyColorApp
-package.name = kivycolorapp
-package.domain = org.test
+title = Dragon Hole
+package.name = dragonhole
+package.domain = org.nightshadow
 source.dir = .
-source.include_exts = py,png,jpg,kv,atlas
-version = 0.1
-requirements = python3,kivy
+source.include_exts = py, png, jpg, jpeg
+
+version = 1.0.0
+requirements = python3, kivy
 
 orientation = portrait
-fullscreen = 0
-android.archs = arm64-v8a, armeabi-v7a
-android.allow_backup = True
+fullscreen = 1
 
-# Android API & NDK
 android.api = 33
 android.minapi = 21
 android.ndk = 25b
-android.ndk_path = 
-android.sdk_path = 
 android.accept_sdk_license = True
-
-# Build options
-android.logcat_filters = *:S python:D
-p4a.branch = master
+android.enable_androidx = True
+android.archs = arm64-v8a, armeabi-v7a
 
 [buildozer]
 log_level = 2
