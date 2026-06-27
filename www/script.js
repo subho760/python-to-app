@@ -1,7 +1,8 @@
-const btn = document.getElementById('colorBtn');
-const colors = ['#1abc9c', '#3498db', '#9b59b6', '#f1c40f', '#e67e22', '#2ecc71'];
+const button = document.getElementById('colorBtn');
+const colors = ['#121212', '#1a237e', '#004d40', '#3e2723', '#4a148c'];
+let currentIndex = 0;
 
-btn.addEventListener('click', () => {
-    const randomColor = colors[Math.floor(Math.random() * colors.length)];
-    document.body.style.backgroundColor = randomColor;
+button.addEventListener('click', () => {
+    currentIndex = (currentIndex + 1) % colors.length;
+    document.body.style.backgroundColor = colors[currentIndex];
 });
