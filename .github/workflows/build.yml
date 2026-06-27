@@ -35,32 +35,31 @@ jobs:
         pip install --upgrade pip
         pip install 'cython==0.29.33' virtualenv buildozer
 
-    - name: Build Unsigned Release APK
+    - name: Build Debug APK
       run: |
         export APP_ANDROID_ACCEPT_SDK_LICENSE="True"
-        # We target 'release' so Buildozer builds a clean, unsigned base app
-        buildozer -v android release
+        buildozer -v android debug
 
     - name: Decode JKS Keystore
       run: |
         echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > release.keystore
 
-    - name: Align and Sign Production APK
+    - name: Align and Sign APK Package
       env:
         STORE_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
         KEY_PASS: ${{ secrets.KEY_PASSWORD }}
       run: |
         mkdir -p final-bin/
-        RAW_APK=$(find bin/ -name "*_release~*.apk" -o -name "*release-unsigned.apk" -o -name "*.apk" | head -n 1)
+        # This broad look matches the exact debug output path that worked perfectly before
+        RAW_APK=$(find bin/ -name "*.apk" | head -n 1)
         
         if [ -n "$RAW_APK" ]; then
-          # Find Android Build Tools path dynamically for alignment
           BUILD_TOOLS_DIR=$(dirname $(find /home/runner/Library/Android/sdk/build-tools/ -name "zipalign" | sort -V | tail -n 1))
           
-          # 1. Zip Align the package first (Required for production apps)
+          # 1. Zip align the apk file first
           $BUILD_TOOLS_DIR/zipalign -v 4 "$RAW_APK" final-bin/aligned.apk
           
-          # 2. Use apksigner to seal the binary cleanly with your credentials
+          # 2. Sign it directly with apksigner using your credentials
           $BUILD_TOOLS_DIR/apksigner sign --ks release.keystore \
             --ks-pass pass:"$STORE_PASS" \
             --key-pass pass:"$KEY_PASS" \
@@ -69,7 +68,7 @@ jobs:
             
           echo "Build signed successfully!"
         else
-          echo "ERROR: Compiled release target could not be found!"
+          echo "ERROR: Compiled APK target could not be found!"
           exit 1
         fi
 
