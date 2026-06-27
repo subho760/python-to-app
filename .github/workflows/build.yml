@@ -1,9 +1,7 @@
 name: Build Custom Wrapper (APK & AAB)
 
 on:
-  push:
-    branches: [ "main" ]
-  workflow_dispatch: # Allows manual trigger from the Actions tab
+  workflow_dispatch: # This keeps it strictly manual to save execution time
 
 jobs:
   build:
