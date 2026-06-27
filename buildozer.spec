@@ -3,11 +3,12 @@ title = Dragon Hole
 package.name = dragonhole
 package.domain = org.nightshadow
 source.dir = .
-source.include_exts = py, png, jpg, jpeg, html, css, js
-source.include_patterns = web/*
+source.include_exts = py, png, jpg, jpeg
 
 version = 1.0.0
-requirements = python3, kivy, android, pyjnius
+# Notice: Clean requirements. No heavy web/pyjnius frameworks required.
+requirements = python3, kivy
+
 orientation = portrait
 fullscreen = 1
 icon.filename = icon.png
@@ -19,9 +20,6 @@ android.accept_sdk_license = True
 android.enable_androidx = True
 android.archs = arm64-v8a, armeabi-v7a
 android.target = aab
-
-android.manifest.application_attributes = android:usesCleartextTraffic="true"
-android.permissions = INTERNET, ACCESS_NETWORK_STATE
 
 [buildozer]
 log_level = 2
