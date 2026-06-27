@@ -1,7 +1,7 @@
 name: Build Android Signed APK
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Manual trigger from Actions tab
 
 jobs:
   build:
@@ -35,45 +35,23 @@ jobs:
         pip install --upgrade pip
         pip install 'cython==0.29.33' virtualenv buildozer
 
-    - name: Build Debug APK
-      run: |
-        export APP_ANDROID_ACCEPT_SDK_LICENSE="True"
-        buildozer -v android debug
-
     - name: Decode JKS Keystore
       run: |
         echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > release.keystore
 
-    - name: Align and Sign APK Package
+    - name: Compile and Natively Sign APK
       env:
-        STORE_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
-        KEY_PASS: ${{ secrets.KEY_PASSWORD }}
+        # Buildozer automatically reads these variables to sign release builds
+        P4A_RELEASE_KEYSTORE: release.keystore
+        P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.KEYSTORE_PASSWORD }}
+        P4A_RELEASE_KEYALIAS: subho-alias
+        P4A_RELEASE_KEY_PASSWD: ${{ secrets.KEY_PASSWORD }}
+        APP_ANDROID_ACCEPT_SDK_LICENSE: "True"
       run: |
-        mkdir -p final-bin/
-        # This broad look matches the exact debug output path that worked perfectly before
-        RAW_APK=$(find bin/ -name "*.apk" | head -n 1)
-        
-        if [ -n "$RAW_APK" ]; then
-          BUILD_TOOLS_DIR=$(dirname $(find /home/runner/Library/Android/sdk/build-tools/ -name "zipalign" | sort -V | tail -n 1))
-          
-          # 1. Zip align the apk file first
-          $BUILD_TOOLS_DIR/zipalign -v 4 "$RAW_APK" final-bin/aligned.apk
-          
-          # 2. Sign it directly with apksigner using your credentials
-          $BUILD_TOOLS_DIR/apksigner sign --ks release.keystore \
-            --ks-pass pass:"$STORE_PASS" \
-            --key-pass pass:"$KEY_PASS" \
-            --ks-key-alias subho-alias \
-            --out final-bin/dragonhole-final.apk final-bin/aligned.apk
-            
-          echo "Build signed successfully!"
-        else
-          echo "ERROR: Compiled APK target could not be found!"
-          exit 1
-        fi
+        buildozer -v android release
 
-    - name: Upload Production APK Artifact
+    - name: Upload Production Signed APK
       uses: actions/upload-artifact@v4
       with:
         name: Signed-Android-Package
-        path: final-bin/dragonhole-final.apk
+        path: bin/
