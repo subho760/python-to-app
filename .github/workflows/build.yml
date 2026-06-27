@@ -1,14 +1,14 @@
-name: Build Custom Wrapper (APK & AAB)
+name: Pure Python Production Build
 
 on:
-  workflow_dispatch: # Strictly manual trigger to keep control over runs
+  workflow_dispatch: # Kept manual to give you ultimate running control
 
 jobs:
   build:
     runs-on: ubuntu-22.04
 
     steps:
-    - name: Checkout Repository
+    - name: Checkout Code
       uses: actions/checkout@v4
 
     - name: Set up Python
@@ -16,83 +16,54 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Set up JDK 11
+    - name: Set up Java JDK 11
       uses: actions/setup-java@v4
       with:
         java-version: '11'
         distribution: 'temurin'
 
-    - name: Install System Dependencies
+    - name: Install Base Linux Tooling
       run: |
         sudo apt-get update
         sudo apt-get install -y --no-install-recommends \
           build-essential git zip unzip gettext libncurses5-dev \
           libncursesw5-dev zlib1g-dev libssl-dev libffi-dev libltdl-dev libtool \
-          autoconf automake pkg-config cmake openjdk-11-jdk libunwind-dev \
-          libgstreamer1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good
+          autoconf automake pkg-config cmake openjdk-11-jdk libunwind-dev
 
-    - name: Install Buildozer and Cython
+    - name: Install Build Frameworks
       run: |
         pip install --upgrade pip
         pip install 'cython==0.29.33' virtualenv buildozer
 
-    - name: Decode JKS Keystore
+    - name: Deploy Local Keyring file
       run: |
         echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > release.keystore
 
-    - name: Compile Unsigned AAB
+    - name: Compile and Sign Android App (AAB)
+      env:
+        P4A_RELEASE_KEYSTORE: release.keystore
+        P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.KEYSTORE_PASSWORD }}
+        P4A_RELEASE_KEYALIAS: subho-alias
+        P4A_RELEASE_KEY_PASSWD: ${{ secrets.KEY_PASSWORD }}
       run: |
         sed -i 's/^android.target =.*/android.target = aab/' buildozer.spec
-        # Build in debug mode to generate a raw package without Buildozer's broken sign loop
-        buildozer -v android debug
+        buildozer -v android release
 
-    - name: Sign and Staging AAB Package
-      env:
-        STORE_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
-        KEY_PASS: ${{ secrets.KEY_PASSWORD }}
-      run: |
-        mkdir -p bin/
-        RAW_AAB=$(find . -name "*.aab" | head -n 1)
-        if [ -n "$RAW_AAB" ]; then
-          cp "$RAW_AAB" bin/dragonhole-release.aab
-          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA256 \
-            -keystore release.keystore \
-            -storepass "$STORE_PASS" \
-            -keypass "$KEY_PASS" \
-            bin/dragonhole-release.aab subho-alias
-        else
-          echo "ERROR: Target AAB package could not be found!"
-          exit 1
-        fi
-
-    - name: Clear Temporary Cache for APK Target
+    - name: Clear Intermediate Build Cache
       run: |
         rm -rf .buildozer/android/platform/build-*
 
-    - name: Compile Unsigned APK
+    - name: Compile and Sign Android Installer (APK)
+      env:
+        P4A_RELEASE_KEYSTORE: release.keystore
+        P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.KEYSTORE_PASSWORD }}
+        P4A_RELEASE_KEYALIAS: subho-alias
+        P4A_RELEASE_KEY_PASSWD: ${{ secrets.KEY_PASSWORD }}
       run: |
         sed -i 's/^android.target =.*/android.target = apk/' buildozer.spec
-        buildozer -v android debug
+        buildozer -v android release
 
-    - name: Sign and Staging APK Package
-      env:
-        STORE_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
-        KEY_PASS: ${{ secrets.KEY_PASSWORD }}
-      run: |
-        RAW_APK=$(find . -name "*.apk" | head -n 1)
-        if [ -n "$RAW_APK" ]; then
-          cp "$RAW_APK" bin/dragonhole-release.apk
-          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA256 \
-            -keystore release.keystore \
-            -storepass "$STORE_PASS" \
-            -keypass "$KEY_PASS" \
-            bin/dragonhole-release.apk subho-alias
-        else
-          echo "ERROR: Target APK package could not be found!"
-          exit 1
-        fi
-
-    - name: Upload Signed Artifacts
+    - name: Export Verified Packages
       uses: actions/upload-artifact@v4
       with:
         name: Signed-Android-Packages
