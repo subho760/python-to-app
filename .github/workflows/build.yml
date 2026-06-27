@@ -1,7 +1,7 @@
-name: Build Android Debug APK
+name: Build Android Signed APK
 
 on:
-  workflow_dispatch: # Allows manual trigger from the Actions tab
+  workflow_dispatch: # Manual trigger from the Actions tab
 
 jobs:
   build:
@@ -37,12 +37,35 @@ jobs:
 
     - name: Build with Buildozer
       run: |
-        # Force the auto-accept flag directly in the runner context
         export APP_ANDROID_ACCEPT_SDK_LICENSE="True"
         buildozer -v android debug
 
-    - name: Upload APK Artifact
+    - name: Decode JKS Keystore
+      run: |
+        echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > release.keystore
+
+    - name: Sign APK Binary with Keystore
+      env:
+        STORE_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_PASS: ${{ secrets.KEY_PASSWORD }}
+      run: |
+        mkdir -p final-bin/
+        RAW_APK=$(find bin/ -name "*.apk" | head -n 1)
+        if [ -n "$RAW_APK" ]; then
+          cp "$RAW_APK" final-bin/dragonhole-signed.apk
+          # Using standard Java jarsigner to securely apply your credentials
+          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA256 \
+            -keystore release.keystore \
+            -storepass "$STORE_PASS" \
+            -keypass "$KEY_PASS" \
+            final-bin/dragonhole-signed.apk subho-alias
+        else
+          echo "ERROR: Compiled APK path not found!"
+          exit 1
+        fi
+
+    - name: Upload Signed APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Debug-Android-Package
-        path: bin/
+        name: Signed-Android-Package
+        path: final-bin/
