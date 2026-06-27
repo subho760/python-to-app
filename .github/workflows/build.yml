@@ -1,7 +1,7 @@
 name: Build Custom Wrapper (APK & AAB)
 
 on:
-  workflow_dispatch: # This keeps it strictly manual to save execution time
+  workflow_dispatch: # Strictly manual trigger to keep control over runs
 
 jobs:
   build:
@@ -40,12 +40,13 @@ jobs:
       run: |
         echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > release.keystore
 
-    - name: Compile AAB Binary
+    - name: Compile Unsigned AAB
       run: |
         sed -i 's/^android.target =.*/android.target = aab/' buildozer.spec
-        buildozer -v android release
+        # Build in debug mode to generate a raw package without Buildozer's broken sign loop
+        buildozer -v android debug
 
-    - name: Sign and Move AAB Package
+    - name: Sign and Staging AAB Package
       env:
         STORE_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
         KEY_PASS: ${{ secrets.KEY_PASSWORD }}
@@ -68,12 +69,12 @@ jobs:
       run: |
         rm -rf .buildozer/android/platform/build-*
 
-    - name: Compile APK Binary
+    - name: Compile Unsigned APK
       run: |
         sed -i 's/^android.target =.*/android.target = apk/' buildozer.spec
-        buildozer -v android release
+        buildozer -v android debug
 
-    - name: Sign and Move APK Package
+    - name: Sign and Staging APK Package
       env:
         STORE_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
         KEY_PASS: ${{ secrets.KEY_PASSWORD }}
