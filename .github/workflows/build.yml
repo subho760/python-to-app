@@ -1,7 +1,7 @@
 name: Build Android Signed APK & AAB
 
 on:
-  workflow_dispatch: # Manual trigger from Actions tab
+  workflow_dispatch:
 
 jobs:
   build:
@@ -47,9 +47,13 @@ jobs:
         P4A_RELEASE_KEY_PASSWD: ${{ secrets.KEY_PASSWORD }}
         APP_ANDROID_ACCEPT_SDK_LICENSE: "True"
       run: |
-        # Explicitly make sure target is set to aab first
         sed -i 's/^android.target =.*/android.target = aab/' buildozer.spec
         buildozer -v android release
+
+    - name: Clear Packaging Target Cache
+      # This forces Buildozer to build the APK packaging format instead of skipping it
+      run: |
+        rm -rf .buildozer/android/platform/build-*
 
     - name: Compile and Sign Android Installer Package (APK)
       env:
@@ -59,7 +63,6 @@ jobs:
         P4A_RELEASE_KEY_PASSWD: ${{ secrets.KEY_PASSWORD }}
         APP_ANDROID_ACCEPT_SDK_LICENSE: "True"
       run: |
-        # Switch the target line in your spec file to apk dynamically
         sed -i 's/^android.target =.*/android.target = apk/' buildozer.spec
         buildozer -v android release
 
