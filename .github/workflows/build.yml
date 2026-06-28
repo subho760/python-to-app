@@ -1,4 +1,4 @@
-name: Build Android Signed APK
+name: Build Android Signed APK & AAB
 
 on:
   workflow_dispatch: # Manual trigger from Actions tab
@@ -39,19 +39,32 @@ jobs:
       run: |
         echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > release.keystore
 
-    - name: Compile and Natively Sign APK
+    - name: Compile and Sign Android App Bundle (AAB)
       env:
-        # Buildozer automatically reads these variables to sign release builds
         P4A_RELEASE_KEYSTORE: release.keystore
         P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.KEYSTORE_PASSWORD }}
         P4A_RELEASE_KEYALIAS: subho-alias
         P4A_RELEASE_KEY_PASSWD: ${{ secrets.KEY_PASSWORD }}
         APP_ANDROID_ACCEPT_SDK_LICENSE: "True"
       run: |
+        # Explicitly make sure target is set to aab first
+        sed -i 's/^android.target =.*/android.target = aab/' buildozer.spec
         buildozer -v android release
 
-    - name: Upload Production Signed APK
+    - name: Compile and Sign Android Installer Package (APK)
+      env:
+        P4A_RELEASE_KEYSTORE: release.keystore
+        P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.KEYSTORE_PASSWORD }}
+        P4A_RELEASE_KEYALIAS: subho-alias
+        P4A_RELEASE_KEY_PASSWD: ${{ secrets.KEY_PASSWORD }}
+        APP_ANDROID_ACCEPT_SDK_LICENSE: "True"
+      run: |
+        # Switch the target line in your spec file to apk dynamically
+        sed -i 's/^android.target =.*/android.target = apk/' buildozer.spec
+        buildozer -v android release
+
+    - name: Upload Signed Packages (Both APK & AAB)
       uses: actions/upload-artifact@v4
       with:
-        name: Signed-Android-Package
+        name: Signed-Android-Packages
         path: bin/
