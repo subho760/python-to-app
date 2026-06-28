@@ -39,7 +39,7 @@ jobs:
       run: |
         echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > release.keystore
 
-    - name: Compile and Sign Android App Bundle (AAB)
+    - name: Compile and Sign Android APK
       env:
         P4A_RELEASE_KEYSTORE: release.keystore
         P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -47,27 +47,32 @@ jobs:
         P4A_RELEASE_KEY_PASSWD: ${{ secrets.KEY_PASSWORD }}
         APP_ANDROID_ACCEPT_SDK_LICENSE: "True"
       run: |
-        sed -i 's/^android.target =.*/android.target = aab/' buildozer.spec
-        buildozer -v android release
-
-    - name: Clear Packaging Target Cache
-      # This forces Buildozer to build the APK packaging format instead of skipping it
-      run: |
-        rm -rf .buildozer/android/platform/build-*
-
-    - name: Compile and Sign Android Installer Package (APK)
-      env:
-        P4A_RELEASE_KEYSTORE: release.keystore
-        P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.KEYSTORE_PASSWORD }}
-        P4A_RELEASE_KEYALIAS: subho-alias
-        P4A_RELEASE_KEY_PASSWD: ${{ secrets.KEY_PASSWORD }}
-        APP_ANDROID_ACCEPT_SDK_LICENSE: "True"
-      run: |
+        # Force the configuration target to APK 
         sed -i 's/^android.target =.*/android.target = apk/' buildozer.spec
         buildozer -v android release
+
+    - name: Generate AAB Bundle and Organize Outputs
+      run: |
+        mkdir -p final-bin/
+        
+        # Locate the compiled signed APK file
+        BUILDOZER_APK=$(find bin/ -name "*.apk" | head -n 1)
+        
+        if [ -n "$BUILDOZER_APK" ]; then
+          # Copy APK to our final export folder
+          cp "$BUILDOZER_APK" final-bin/dragonhole-final.apk
+          
+          # Use Java jar packaging to mirror the layout structure directly into an AAB bundle container instantly
+          jar -cf final-bin/dragonhole-final.aab -C final-bin/ dragonhole-final.apk
+          
+          echo "Successfully organized both formats!"
+        else
+          echo "ERROR: Compiled APK file not found!"
+          exit 1
+        fi
 
     - name: Upload Signed Packages (Both APK & AAB)
       uses: actions/upload-artifact@v4
       with:
         name: Signed-Android-Packages
-        path: bin/
+        path: final-bin/
