@@ -1,23 +1,38 @@
 [app]
+
+# (str) Title of your application
 title = Dragon Hole
+
+# (str) Package name
 package.name = dragonhole
-package.domain = org.nightshadow
-source.dir = .
-source.include_exts = py, png, jpg, jpeg
 
-version = 1.0.0
-requirements = python3, kivy
+# (str) Package domain (needed for android packaging)
+package.domain = org.subho
 
-orientation = portrait
-fullscreen = 1
+# (list) Source files to include (including the patterns)
+source.include_exts = py,png,jpg,jpeg,spec
 
-android.api = 33
-android.minapi = 21
+# (list) List of directories to include
+source.include_dirs = images
+
+# (str) Icon of the application
+icon.filename = logo.png
+
+# (list) Application requirements
+# comma separated e.g. requirements = sqlite3,kivy
+requirements = python3,kivy
+
+# (int) Target Android API, should be as high as possible.
+android.api = 34
+
+# (int) Minimum API your APK will support.
+android.minapi = 24
+
+# (str) Android NDK version to use
 android.ndk = 25b
-android.accept_sdk_license = True
-android.enable_androidx = True
-android.archs = arm64-v8a, armeabi-v7a
 
-[buildozer]
-log_level = 2
-warn_on_root = 1
+# (bool) If True, then skip apply patch to platform
+android.accept_sdk_license = True
+
+# (str) The Android arch to target (both standard 32 and 64 bit architectures)
+android.archs = arm64-v8a, armeabi-v7a
